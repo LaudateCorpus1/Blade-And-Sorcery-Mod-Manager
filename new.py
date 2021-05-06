@@ -162,15 +162,28 @@ class Handler:
       Gtk.main_quit()
       Files.destroy()
 
+    
+
     def DeleteClicked(self, *args):
       selection= List.get_selection()
       model, paths=selection.get_selected_rows()
       for path in paths:
         iter= model.get_iter(path)
+        print(path)
         model.remove(iter)
+        
+        with open('data.json', "r+") as json_file:
+          data = json.load(json_file) 
+          print(data)
+
+          # Remove key from dictionary
+          del data[str(path)]
+          json_file.seek(0)
+          write_json(data)
 
     def SaveClicked(self, *args):
       print("SaveClicked")
+
 
 
     def ApplyClicked(self, *args):
@@ -182,21 +195,19 @@ class Handler:
       urilocation=Import.get_uri()
       print(urilocation)
       today=str(date.today())
-      def write_json(data, filename='data.json'):
-        with open(filename,'w') as f:
-          json.dump(data, f, indent=3)
+      
 
       with open('data.json', "r+") as json_file:
         data = json.load(json_file) 
-        count=len(data)
-        count +=1
-        count2=str(count)
-        print(count2)
+        print(data)
+        key =	str(len(data))
+
+        print(key)
         y = {
-            count2:{
-              "modname":filename,
-              "modlocation": filelocation,
-              "dateadded": today
+            key:{
+              "modname":	filename,
+              "modlocation":	filelocation,
+              "dateadded": 	today
                 }
             }
         data.update(y)
@@ -210,6 +221,9 @@ class Handler:
 
 
 
+def write_json(data, filename='data.json'):
+  with open(filename,'w') as f:
+      json.dump(data, f, indent=3)
 
 builder = Gtk.Builder()
 builder.add_from_string(MENU_XML)
@@ -252,18 +266,20 @@ column_enable=Gtk.TreeViewColumn("Enabled",renderer_enable, active=2)
 List.append_column(column_enable)
 
 with open('data.json', "r+") as json_file:
+  i = 0
   data = json.load(json_file) 
   count=len(data)
   print(count)
-  while count>0:
-    count1=str(count)
-    print(data[count1])
-    modname=data[count1]["modname"]
-    modlocation=data[count1]["modlocation"]
-    dateadded=data[count1]["dateadded"]
+  while i < count:
+    key = str(i)
+    print(data[key])
+    
+    modname =		data[key]["modname"]
+    modlocation =	data[key]["modlocation"]
+    dateadded =		data[key]["dateadded"]
 
     BASMM.store.append(None,[modname,dateadded,True])
-    count -=1
+    i += 1
 
 
 BASMM.show_all()
