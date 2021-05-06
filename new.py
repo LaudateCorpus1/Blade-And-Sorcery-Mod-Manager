@@ -173,11 +173,17 @@ class Handler:
         model.remove(iter)
         
         with open('data.json', "r+") as json_file:
+          i = 0
           data = json.load(json_file) 
+          size = len(data)
           print(data)
 
           # Remove key from dictionary
           del data[str(path)]
+          i = path
+          while i < size:
+            data[str(i)] = data[str(i + 1)]
+            i += 1          
           json_file.seek(0)
           write_json(data)
 
@@ -272,16 +278,21 @@ with open('data.json', "r+") as json_file:
   print(count)
   while i < count:
     key = str(i)
-    print(data[key])
-    
-    modname =		data[key]["modname"]
-    modlocation =	data[key]["modlocation"]
-    dateadded =		data[key]["dateadded"]
+    if key in data:
+      print(data[key])
+      
+      modname =		data[key]["modname"]
+      modlocation =	data[key]["modlocation"]
+      dateadded =	data[key]["dateadded"]
 
-    BASMM.store.append(None,[modname,dateadded,True])
-    i += 1
-
-
+      BASMM.store.append(None,[modname,dateadded,True])
+      i += 1
+    else:
+      while str(i) not in data:
+        i += 1
+        data[key] = data[str(i)]
+        
+      
 BASMM.show_all()
 BASMM.connect("destroy", Gtk.main_quit)
 Gtk.main()
