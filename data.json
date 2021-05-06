@@ -1,0 +1,20 @@
+{
+   "1": {
+      "modname": "something",
+      "modlocation": "location",
+      "dateadded": "2021-04-28"
+      
+   },
+   "2": {
+      "modname": "something",
+      "modlocation": "location",
+      "dateadded": "2021-04-28",
+      "enabled": true
+   },
+   "3": {
+      "modname": "Nikhil",
+      "modlocation": "nikhil@geeksforgeeks.org",
+      "dateadded": "Full Time",
+      "enabled": true
+   }
+}
