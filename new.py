@@ -2,278 +2,193 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-import vdf
-import zipfile
-import getpass
+from sys import platform
+import vdf, zipfile, getpass, json, ntpath, re
 from datetime import date
-import json
-import ntpath
-import re
-from os.path import expanduser
+from os.path import expanduser, isfile, isdir
+from zipfile import ZipFile
 
-MENU_XML= """
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.2 -->
-<interface>
-  <requires lib="gtk+" version="3.20"/>
-  <object class="GtkApplicationWindow" id="BASMM">
-    <property name="name">Blade And Sorcery Mod Manager</property>
-    <property name="can_focus">False</property>
-    <property name="is_focus">True</property>
-    <property name="tooltip_text" translatable="yes">Blade And Sorcery Mod Manager</property>
-    <property name="default_width">1920</property>
-    <property name="default_height">1080</property>
-    <property name="icon_name">Blade And Sorcery Mod Manager</property>
-    <child type="titlebar">
-      <placeholder/>
-    </child>
-    <child>
-      <object class="GtkBox" id="Box">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="halign">baseline</property>
-        <property name="orientation">vertical</property>
-        <child>
-          <object class="GtkLabel" id="Name">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Blade and Sorcery Mod Manager</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkActionBar" id="Top_Buttons">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="halign">center</property>
-            <child>
-              <object class="GtkFileChooserButton" id="Import">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="title" translatable="yes"/>
-              </object>
-              <packing>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="Add">
-                <property name="label" translatable="yes">Add</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="AddClicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkScrolledWindow" id="ListWindow">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="vexpand">True</property>
-            <property name="shadow_type">in</property>
-            <child>
-              <object class="GtkTreeView" id="List">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hexpand">True</property>
-                <property name="activate_on_single_click">True</property>
-                <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="List1"/>
-                </child>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkActionBar" id="Bottom_Buttons">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="double_buffered">False</property>
-            <property name="halign">center</property>
-            <property name="valign">end</property>
-            <child>
-              <object class="GtkButton" id="Delete">
-                <property name="label" translatable="yes">Delete</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="image_position">right</property>
-                <signal name="clicked" handler="DeleteClicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="Apply">
-                <property name="label" translatable="yes">Apply</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="ApplyClicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="Save">
-                <property name="label" translatable="yes">Save</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <signal name="clicked" handler="SaveClicked" swapped="no"/>
-              </object>
-              <packing>
-                <property name="position">0</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">4</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-  </object>
-</interface>
-"""
-def winsteam():
-  with open(r"C:\Program Files (x86)\Steam\SteamApps\libraryfolders.vdf") as f:
-      folders = [r"C:\Program Files (x86)\Steam"]
-      lf = f.read()
-      folders.extend([fn.replace("\\\\", "\\") for fn in
-          re.findall('^\s*"\d*"\s*"([^"]*)"', lf, re.MULTILINE)])
-      print(lf)
+####################################################################################
 
-def linuxsteam():
-  library = expanduser('~/.steam/steam/steamapps/libraryfolders.vdf')
-  with open(library, 'r') as f:
-      lf = vdf.load(f)
-      vdfdata = dict(vdf.VDFDict(lf)["LibraryFolders"])
-      del vdfdata['TimeNextStatsReport']
-      del vdfdata['ContentStatsID']
-      print(vdfdata)
-      keylist = list(vdfdata.keys())
-      print(keylist)
+MENU_XML = 		open('menu.xml','r').read()
 
+####################################################################################
 
-def macsteam():
-  print("STUB")
-
-#data = open('data.txt','r')
-
-class Handler:
-    def onDestroy(self, *args):
-      Gtk.main_quit()
-      Files.destroy()
-
+def loaddata():
+  BASMM.store.clear()
+  with open('data.json', "r+") as json_file:
+    i = 		0
+    index = 		""
+    jsondata = 		json.load(json_file)
+    data = 		{}
+    keylist = 		list(jsondata.keys())
+    for key in keylist:
+      index = 		str(i)
+      jsonmodname =	jsondata[key]["modname"]
+      jsonmodlocation =	jsondata[key]["modlocation"]
+      jsondateadded =	jsondata[key]["dateadded"]
+      data[index] = 	{
+    			 "modname" 	: jsonmodname, 
+    			 "modlocation" 	: jsonmodlocation,
+    			 "dateadded"	: jsondateadded
+    			}
+      modname =		data[index]["modname"]
+      modlocation =	data[index]["modlocation"]
+      dateadded =	data[index]["dateadded"]			 
     
+      BASMM.store.append(None,[modname,dateadded,True])
+      i += 1
+    json_file.seek(0)
+    write_json(data)
 
-    def DeleteClicked(self, *args):
-      selection= List.get_selection()
-      model, paths=selection.get_selected_rows()
-      for path in paths:
-        iter = model.get_iter(path)
-        print(path)
-        model.remove(iter)
-        
-        
-        with open('data.json', "r+") as json_file:
-          target = json.load(json_file)
-          del target[str(path)]
-          json_file.seek(0)
-          write_json(target)
-        loaddata()
+####################################################################################
 
-    def SaveClicked(self, *args):
-      print("SaveClicked")
+def unzipfile(filepath, modfolderpath):
+  with ZipFile(filepath,'r') as modzip:
+    modzip.extractall(modfolderpath)
 
-
-
-    def ApplyClicked(self, *args):
-      print("ApplyClicked")
-    def AddClicked(self, *args):
-      print(Import.get_filename())
-      filelocation=Import.get_filename()
-      filename=ntpath.basename(filelocation)
-      urilocation=Import.get_uri()
-      print(urilocation)
-      today=str(date.today())
-      
-
-      with open('data.json', "r+") as json_file:
-        data = json.load(json_file) 
-        print(data)
-        key =	str(len(data))
-
-        print(key)
-        y = {
-            key:{
-              "modname":	filename,
-              "modlocation":	filelocation,
-              "dateadded": 	today
-                }
-            }
-        data.update(y)
-        json_file.seek(0)
-        write_json(data)
-
-
-      if(not filelocation==None and not urilocation=="None"):
-        Import.set_uri("None")
-        BASMM.store.append(None,[filelocation,today,True])
-
-
+####################################################################################
 
 def write_json(data, filename='data.json'):
   with open(filename,'w') as f:
       json.dump(data, f, indent=3)
 
-builder = Gtk.Builder()
+####################################################################################
+
+def winsteam():
+  with open(r"C:\Program Files (x86)\Steam\SteamApps\libraryfolders.vdf") as f:
+      folders = 	[r"C:\Program Files (x86)\Steam"]
+      lf = 		f.read()
+      folders.extend([fn.replace("\\\\", "\\") for fn in
+          re.findall('^\s*"\d*"\s*"([^"]*)"', lf, re.MULTILINE)])
+      print(lf)
+
+####################################################################################
+
+def linuxsteam():
+  location = 		expanduser('~/.steam/steam/steamapps/')
+  library = 		'libraryfolders.vdf'
+  manifest = 		'appmanifest_629730.acf'
+  
+  librarypath = 	(location + library)
+  manifestpath = 	(location + manifest)
+  
+  
+  if (isfile(manifestpath)):
+    with open(manifestpath, 'r') as f:
+      acfdata = 	dict(vdf.VDFDict(vdf.load(f))["AppState"])
+      path = (location + "common" + "/" + acfdata["installdir"])
+      print (path)
+       
+  else:
+    with open(librarypath, 'r') as f:
+      vdfdata = 	dict(vdf.VDFDict(vdf.load(f))["LibraryFolders"])
+      del 		vdfdata['TimeNextStatsReport']
+      del 		vdfdata['ContentStatsID']
+      keylist = 	list(vdfdata.keys())
+      for key in keylist:
+        liblocation = vdfdata[key] + "/" + "steamapps" + "/"
+        
+        manifestpath = (liblocation + manifest)
+        with open(manifestpath, 'r') as f:
+          acfdata = 	dict(vdf.VDFDict(vdf.load(f))["AppState"])
+          path = (liblocation + "common" + "/" + acfdata["installdir"])
+          if(isdir(path)):
+            print (path)
+      
+####################################################################################
+
+def macsteam():
+  print("STUB")
+
+####################################################################################
+
+class Handler:
+
+####################################################################################
+
+    def onDestroy(self, *args):
+      Gtk.main_quit()
+      Files.destroy()
+
+####################################################################################
+
+    def DeleteClicked(self, *args):
+      selection = 	List.get_selection()
+      model, paths = 	selection.get_selected_rows()
+      for path in paths:
+        iter =  	model.get_iter(path)
+        model.remove(iter)
+        with open('data.json', "r+") as json_file:
+          target = 	json.load(json_file)
+          del 		target[str(path)]
+          
+          json_file.seek(0)
+          write_json(target)
+        loaddata()
+
+####################################################################################
+
+    def SaveClicked(self, *args):
+      print("SaveClicked")
+
+####################################################################################
+
+    def ApplyClicked(self, *args):
+      print("ApplyClicked")
+
+####################################################################################      
+
+    def AddClicked(self, *args):
+      filelocation = 	Import.get_filename()
+      filename = 	ntpath.basename(filelocation)
+      urilocation = 	Import.get_uri()
+      today = 		str(date.today())
+      
+
+      with open('data.json', "r+") as json_file:
+        data = 		json.load(json_file) 
+        key =		str(len(data))
+        addition = 	{
+                         key: {
+                               "modname":	filename,
+                               "modlocation":	filelocation,
+                               "dateadded": 	today
+                              }
+                        }
+        data.update(addition)
+        json_file.seek(0)
+        write_json(data)
+
+
+      if(not filelocation == None and not urilocation == "None"):
+        Import.set_uri("None")
+        BASMM.store.append(None, [filelocation, today, True])
+
+####################################################################################
+
+# GTK Setup
+builder = 		Gtk.Builder()
 builder.add_from_string(MENU_XML)
 builder.connect_signals(Handler())
-BASMM =		builder.get_object("BASMM")
-Box =	  	builder.get_object("Box")
-Name =		builder.get_object("Top_Button")
-Import =	builder.get_object("Import")
-Delete =	builder.get_object("Delete")
-List =		builder.get_object("List")
-Bottom_Button = builder.get_object("Bottom_Button")
-Save =		builder.get_object("Save")
-Apply =		builder.get_object("Apply")
-Files =		builder.get_object("Files")
-row = 		builder.get_object("row")
-Add = 		builder.get_object("Add")
+BASMM =			builder.get_object("BASMM")
+Box =	  		builder.get_object("Box")
+Name =			builder.get_object("Top_Button")
+Import =		builder.get_object("Import")
+Delete =		builder.get_object("Delete")
+List =			builder.get_object("List")
+Bottom_Button = 	builder.get_object("Bottom_Button")
+Save =			builder.get_object("Save")
+Apply =			builder.get_object("Apply")
+Files =			builder.get_object("Files")
+row = 			builder.get_object("row")
+Add = 			builder.get_object("Add")
 
 #Creates Columns for TreeView
-BASMM.store= Gtk.TreeStore(str,str,bool)
+BASMM.store = 		Gtk.TreeStore(str,str,bool)
 List.set_model(BASMM.store)
-renderer_text=Gtk.CellRendererText()
+renderer_text = 	Gtk.CellRendererText()
 Gtk.Window.set_default_size(BASMM, 640, 480)
-
-
 
 column_mods=Gtk.TreeViewColumn("ModName",renderer_text,text=0)
 List.append_column(column_mods)
@@ -287,52 +202,19 @@ def on_toggle(cell, path, model, *ignore):
         it = BASMM.store.get_iter(path)
         model[it][2] = not model[it][2]
 
-  
+
 renderer_enable=Gtk.CellRendererToggle()
 renderer_enable.connect("toggled", on_toggle, BASMM.store)
 column_enable=Gtk.TreeViewColumn("Enabled",renderer_enable, active=2)
 List.append_column(column_enable)
 
-def loaddata():
-  BASMM.store.clear()
-  with open('data.json', "r+") as json_file:
-    i = 0
-    index = ""
-    jsondata = json.load(json_file)
-    data = {}
-  
-    keylist = list(jsondata.keys())
-    print(keylist)
-    for key in keylist:
-    
-      index = str(i)
-      print(jsondata[key])
-      print(index)
-    
-      jsonmodname =	jsondata[key]["modname"]
-      jsonmodlocation =	jsondata[key]["modlocation"]
-      jsondateadded =	jsondata[key]["dateadded"]
-    
-    
-      data[index] = 	{
-    			 "modname" 	: jsonmodname, 
-    			 "modlocation" 	: jsonmodlocation,
-    			 "dateadded"	: jsondateadded
-    			 }
-    
-      modname =		data[index]["modname"]
-      modlocation =	data[index]["modlocation"]
-      dateadded =		data[index]["dateadded"]			 
-    
-      BASMM.store.append(None,[modname,dateadded,True])
-      i += 1
-    print(data)
-    json_file.seek(0)
-    write_json(data)
+
+####################################################################################
+####################################################################################
+####################################################################################
   
 loaddata()
 
-from sys import platform
 if platform == "linux":
     linuxsteam()
 elif platform == "darwin":
@@ -340,6 +222,7 @@ elif platform == "darwin":
 elif platform == "win32" or platform == "cygwin":
     winsteam()
 
+####################################################################################
 
 BASMM.show_all()
 BASMM.connect("destroy", Gtk.main_quit)
