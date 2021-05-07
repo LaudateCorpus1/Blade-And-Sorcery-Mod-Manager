@@ -7,6 +7,7 @@ import vdf, zipfile, getpass, json, ntpath, re
 from datetime import date
 from os.path import expanduser, isfile, isdir
 from zipfile import ZipFile
+import os
 
 ####################################################################################
 
@@ -46,6 +47,9 @@ def loaddata():
 def unzipfile(filepath, modfolderpath):
   with ZipFile(filepath,'r') as modzip:
     modzip.extractall(modfolderpath)
+    dirs = list(set([os.path.dirname(x) for x in modzip.namelist()]))
+    topdirs = [os.path.split(x)[0] for x in dirs]
+    print(topdirs[1])
 
 ####################################################################################
 
@@ -117,6 +121,7 @@ def linuxsteam():
           path = (liblocation + "common" + "/" + acfdata["installdir"])
           if(isdir(path)):
             print (path)
+  return path
       
 ####################################################################################
 
@@ -241,7 +246,7 @@ List.append_column(column_enable)
 loaddata()
 
 if platform == "linux":
-    linuxsteam()
+    path=linuxsteam()
 elif platform == "darwin":
     macsteam()
 elif platform == "win32" or platform == "cygwin":
