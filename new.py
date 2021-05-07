@@ -85,6 +85,7 @@ def winsteam():
           path = (liblocation + "common" + "/" + acfdata["installdir"])
           if(isdir(path)):
             print (path)
+  return path
 ####################################################################################
 
 def linuxsteam():
@@ -95,13 +96,12 @@ def linuxsteam():
   librarypath = 	(location + library)
   manifestpath = 	(location + manifest)
   
-  
   if (isfile(manifestpath)):
     with open(manifestpath, 'r') as f:
       acfdata = 	dict(vdf.VDFDict(vdf.load(f))["AppState"])
       path = (location + "common" + "/" + acfdata["installdir"])
       print (path)
-       
+  
   else:
     with open(librarypath, 'r') as f:
       vdfdata = 	dict(vdf.VDFDict(vdf.load(f))["LibraryFolders"])
@@ -185,7 +185,10 @@ class Handler:
 
       if(not filelocation == None and not urilocation == "None"):
         Import.set_uri("None")
-        BASMM.store.append(None, [filelocation, today, True])
+        BASMM.store.append(None, [filename, today, True])
+      modpath = str(path)+"/BladeAndSorcery_Data/StreamingAssets/Mods"
+      print(modpath)
+      unzipfile(filelocation, modpath)
 
 ####################################################################################
 
@@ -242,7 +245,7 @@ if platform == "linux":
 elif platform == "darwin":
     macsteam()
 elif platform == "win32" or platform == "cygwin":
-    winsteam()
+    path =winsteam()
 
 ####################################################################################
 
