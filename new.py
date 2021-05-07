@@ -1,11 +1,16 @@
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
+
+import vdf
 import zipfile
 import getpass
 from datetime import date
 import json
 import ntpath
+import re
+from os.path import expanduser
+
 MENU_XML= """
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Generated with glade 3.22.2 -->
@@ -154,6 +159,28 @@ MENU_XML= """
   </object>
 </interface>
 """
+def winsteam():
+  with open(r"C:\Program Files (x86)\Steam\SteamApps\libraryfolders.vdf") as f:
+      folders = [r"C:\Program Files (x86)\Steam"]
+      lf = f.read()
+      folders.extend([fn.replace("\\\\", "\\") for fn in
+          re.findall('^\s*"\d*"\s*"([^"]*)"', lf, re.MULTILINE)])
+      print(lf)
+
+def linuxsteam():
+  library = expanduser('~/.steam/steam/steamapps/libraryfolders.vdf')
+  with open(library, 'r') as f:
+      lf = vdf.load(f)
+      vdfdata = dict(vdf.VDFDict(lf)["LibraryFolders"])
+      del vdfdata['TimeNextStatsReport']
+      del vdfdata['ContentStatsID']
+      print(vdfdata)
+      keylist = list(vdfdata.keys())
+      print(keylist)
+
+
+def macsteam():
+  print("STUB")
 
 #data = open('data.txt','r')
 
@@ -169,7 +196,6 @@ class Handler:
       model, paths=selection.get_selected_rows()
       for path in paths:
         iter = model.get_iter(path)
-        next = model.iter_next(iter)
         print(path)
         model.remove(iter)
         
@@ -228,23 +254,25 @@ def write_json(data, filename='data.json'):
 builder = Gtk.Builder()
 builder.add_from_string(MENU_XML)
 builder.connect_signals(Handler())
-BASMM=builder.get_object("BASMM")
-Box=builder.get_object("Box")
-Name=builder.get_object("Top_Button")
-Import=builder.get_object("Import")
-Delete=builder.get_object("Delete")
-List=builder.get_object("List")
-Bottom_Button=builder.get_object("Bottom_Button")
-Save=builder.get_object("Save")
-Apply=builder.get_object("Apply")
-Files=builder.get_object("Files")
-row = builder.get_object("row")
-Add = builder.get_object("Add")
+BASMM =		builder.get_object("BASMM")
+Box =	  	builder.get_object("Box")
+Name =		builder.get_object("Top_Button")
+Import =	builder.get_object("Import")
+Delete =	builder.get_object("Delete")
+List =		builder.get_object("List")
+Bottom_Button = builder.get_object("Bottom_Button")
+Save =		builder.get_object("Save")
+Apply =		builder.get_object("Apply")
+Files =		builder.get_object("Files")
+row = 		builder.get_object("row")
+Add = 		builder.get_object("Add")
 
 #Creates Columns for TreeView
 BASMM.store= Gtk.TreeStore(str,str,bool)
 List.set_model(BASMM.store)
 renderer_text=Gtk.CellRendererText()
+Gtk.Window.set_default_size(BASMM, 640, 480)
+
 
 
 column_mods=Gtk.TreeViewColumn("ModName",renderer_text,text=0)
@@ -269,9 +297,7 @@ def loaddata():
   BASMM.store.clear()
   with open('data.json', "r+") as json_file:
     i = 0
-    x = 0
     index = ""
-    new = ""
     jsondata = json.load(json_file)
     data = {}
   
@@ -305,6 +331,15 @@ def loaddata():
     write_json(data)
   
 loaddata()
+
+from sys import platform
+if platform == "linux":
+    linuxsteam()
+elif platform == "darwin":
+    macsteam()
+elif platform == "win32" or platform == "cygwin":
+    winsteam()
+
 
 BASMM.show_all()
 BASMM.connect("destroy", Gtk.main_quit)
