@@ -56,13 +56,35 @@ def write_json(data, filename='data.json'):
 ####################################################################################
 
 def winsteam():
-  with open(r"C:\Program Files (x86)\Steam\SteamApps\libraryfolders.vdf") as f:
-      folders = 	[r"C:\Program Files (x86)\Steam"]
-      lf = 		f.read()
-      folders.extend([fn.replace("\\\\", "\\") for fn in
-          re.findall('^\s*"\d*"\s*"([^"]*)"', lf, re.MULTILINE)])
-      print(lf)
-
+  location =    'C:/Program Files (x86)/Steam/steamapps/'
+  library = 		'libraryfolders.vdf'
+  manifest = 		'appmanifest_629730.acf'
+  
+  librarypath = 	(location + library)
+  manifestpath = 	(location + manifest)
+  
+  
+  if (isfile(manifestpath)):
+    with open(manifestpath, 'r') as f:
+      acfdata = 	dict(vdf.VDFDict(vdf.load(f))["AppState"])
+      path = (location + "common" + "/" + acfdata["installdir"])
+      print (path)
+       
+  else:
+    with open(librarypath, 'r') as f:
+      vdfdata = 	dict(vdf.VDFDict(vdf.load(f))["LibraryFolders"])
+      del 		vdfdata['TimeNextStatsReport']
+      del 		vdfdata['ContentStatsID']
+      keylist = 	list(vdfdata.keys())
+      for key in keylist:
+        liblocation = vdfdata[key] + "/" + "steamapps" + "/"
+        
+        manifestpath = (liblocation + manifest)
+        with open(manifestpath, 'r') as f:
+          acfdata = 	dict(vdf.VDFDict(vdf.load(f))["AppState"])
+          path = (liblocation + "common" + "/" + acfdata["installdir"])
+          if(isdir(path)):
+            print (path)
 ####################################################################################
 
 def linuxsteam():
