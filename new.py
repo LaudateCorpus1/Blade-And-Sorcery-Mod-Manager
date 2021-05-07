@@ -168,24 +168,18 @@ class Handler:
       selection= List.get_selection()
       model, paths=selection.get_selected_rows()
       for path in paths:
-        iter= model.get_iter(path)
+        iter = model.get_iter(path)
+        next = model.iter_next(iter)
         print(path)
         model.remove(iter)
         
+        
         with open('data.json', "r+") as json_file:
-          i = 0
-          data = json.load(json_file) 
-          size = len(data)
-          print(data)
-
-          # Remove key from dictionary
-          del data[str(path)]
-          i = path
-          while i < size:
-            data[str(i)] = data[str(i + 1)]
-            i += 1          
+          target = json.load(json_file)
+          del target[str(path)]
           json_file.seek(0)
-          write_json(data)
+          write_json(target)
+        loaddata()
 
     def SaveClicked(self, *args):
       print("SaveClicked")
@@ -218,7 +212,7 @@ class Handler:
             }
         data.update(y)
         json_file.seek(0)
-      write_json(data)
+        write_json(data)
 
 
       if(not filelocation==None and not urilocation=="None"):
@@ -271,28 +265,47 @@ renderer_enable.connect("toggled", on_toggle, BASMM.store)
 column_enable=Gtk.TreeViewColumn("Enabled",renderer_enable, active=2)
 List.append_column(column_enable)
 
-with open('data.json', "r+") as json_file:
-  i = 0
-  data = json.load(json_file) 
-  count=len(data)
-  print(count)
-  while i < count:
-    key = str(i)
-    if key in data:
-      print(data[key])
-      
-      modname =		data[key]["modname"]
-      modlocation =	data[key]["modlocation"]
-      dateadded =	data[key]["dateadded"]
-
+def loaddata():
+  BASMM.store.clear()
+  with open('data.json', "r+") as json_file:
+    i = 0
+    x = 0
+    index = ""
+    new = ""
+    jsondata = json.load(json_file)
+    data = {}
+  
+    keylist = list(jsondata.keys())
+    print(keylist)
+    for key in keylist:
+    
+      index = str(i)
+      print(jsondata[key])
+      print(index)
+    
+      jsonmodname =	jsondata[key]["modname"]
+      jsonmodlocation =	jsondata[key]["modlocation"]
+      jsondateadded =	jsondata[key]["dateadded"]
+    
+    
+      data[index] = 	{
+    			 "modname" 	: jsonmodname, 
+    			 "modlocation" 	: jsonmodlocation,
+    			 "dateadded"	: jsondateadded
+    			 }
+    
+      modname =		data[index]["modname"]
+      modlocation =	data[index]["modlocation"]
+      dateadded =		data[index]["dateadded"]			 
+    
       BASMM.store.append(None,[modname,dateadded,True])
       i += 1
-    else:
-      while str(i) not in data:
-        i += 1
-        data[key] = data[str(i)]
-        
-      
+    print(data)
+    json_file.seek(0)
+    write_json(data)
+  
+loaddata()
+
 BASMM.show_all()
 BASMM.connect("destroy", Gtk.main_quit)
 Gtk.main()
